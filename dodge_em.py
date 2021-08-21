@@ -1,3 +1,5 @@
+# A simple game made with the python pygame module by EGBEBI ADEDAMOLA
+
 import random
 import pygame
 import json
@@ -12,31 +14,35 @@ red = (255, 0, 0)
 purple = (255, 0, 180)
 yellow = (255, 255, 0)
 white = (255, 255, 255)
-score = 0
-highscore = ""
 
 
 class Player_car:
 	def __init__(self):
-		self.vel = 11
+		self.vel = 10
 		self.x = 155
 		self.y = 270
+		self.width = 20
 		self.move_right = False
 		self.move_left = False
 		self.current_pos = ""
-		self.not_moving = True
+		self.jump_pos = ""
+		self.moving = False
+		self.jumping =  False
+		# counter for how long the player will jump0
+		self.jump_count = 0
+		self.margin = 5
 
 	def draw_car(self):
-		pygame.draw.rect(win, blue, (self.x, self.y, 20, 10))
-		pygame.draw.rect(win, blue, (self.x + 5, self.y + 10, 10, 10))
-		pygame.draw.rect(win, blue, (self.x, self.y + 20, 20, 10))
-		pygame.draw.rect(win, blue, (self.x, self.y, 20, 30), 1)
+		pygame.draw.rect(win, blue, (self.x, self.y, self.width, 10))
+		pygame.draw.rect(win, blue, (self.x + self.margin, self.y + 10, self.width/2, 10))
+		pygame.draw.rect(win, blue, (self.x, self.y + 20, self.width, 10))
+		pygame.draw.rect(win, blue, (self.x, self.y, self.width, 30), 1)
 
 	def move_car(self):
-		if self.move_right == False and self.move_left == False:
-			self.not_moving = True
+		if self.x in range(45, 266, 110):
+			self.moving = False
 		else:
-			self.not_moving = False
+			self.moving = True
 		
 		if self.move_right:
 			if self.current_pos in range(45, 156):
@@ -54,6 +60,21 @@ class Player_car:
 				if self.x > 155:
 					self.x -= self.vel
 
+	def jump_over(self):
+		if self.jumping:
+			self.x = self.jump_pos - 10
+			self.margin = 10
+			self.width = 40
+			self.jump_count += 10
+			if self.jump_count == 100:
+				self.width = 20
+				self.margin = 5
+				self.x = self.jump_pos
+				self.jump_count = 0
+				self.jump_pos = ""
+				self.jumping = False
+
+
 class Cars_To_Be_Dodged:
 	def __init__(self):
 		# The third item in each list inside the overall list is for checking whether a computer_car has reached..
@@ -65,7 +86,7 @@ class Cars_To_Be_Dodged:
 		self.colour = ""
 		self.vel = 10
 
-	#creates a random position and colour for a car
+	# Creates a random position and colour for a car
 	def random_car_pos(self):
 		if self.spawn:
 			car_pos = random.choice(self.possible_pos)
@@ -86,7 +107,7 @@ class Cars_To_Be_Dodged:
 					self.cars_list.append(car_properties)
 					self.spawn = False
 
-	#renders or draws the cars on screen
+	# Renders or draws the cars on screen
 	def spawn_cars(self):
 		global score
 		if self.cars_list:
@@ -135,68 +156,98 @@ road = Road()
 computer = Cars_To_Be_Dodged()
 game_menu = True
 game_over = False
+score = 0
+highscore = ""
 text = pygame.font.SysFont("Helvetica", 18)
 game_menu_text = pygame.font.SysFont("Helvetica", 22)
 header_text = pygame.font.SysFont("Helvetica", 30)
 help_txt = pygame.font.SysFont("Helvetica", 15)
 nav_x = 15
 nav_y = 79
+box_width = 140
+box_length = 40
+reset = False
+
+# Game menu's UI
+def menu_display():
+	win.fill((38, 78, 88))
+	win.blit(header_text.render("DODGE THE CARS!!", True, red), (60, 20))
+	win.blit(game_menu_text.render("NEW GAME", True, white), (20, 84))
+	win.blit(game_menu_text.render("RESET HIGHSCORE", True, white), (20, 128))
+	win.blit(game_menu_text.render("HIGH SCORE: " + str(highscore), True, white), (20, 176))
+	win.blit(help_txt.render("Note: use the up and down arrow keys to navigate the menu", True, white), (5, 220))
+	win.blit(help_txt.render("And use the SPACE key to select the option", True, white), (5, 240))
+	pygame.draw.rect(win, (0, 0, 255), (nav_x, nav_y, box_width, box_length), 1)
 
 def load_high_score():
 	global highscore
 	with open("high_score.json") as highscore_file:
 		highscore = json.load(highscore_file)
 
-def menu_display():
-	win.fill((38, 78, 88))
-	win.blit(header_text.render("DODGE THE CARS!!", True, red), (60, 20))
-	win.blit(game_menu_text.render("NEW GAME", True, white), (20, 84))
-	win.blit(game_menu_text.render("HIGH SCORES", True, white), (20, 128))
-	win.blit(help_txt.render("Note: use the up and down arrow keys to navigate the menu", True, white), (5, 200))
-	win.blit(help_txt.render("And use the SPACE key to select the option", True, white), (5, 230))
-	pygame.draw.rect(win, (0, 0, 255), (nav_x, nav_y, 150, 40), 1)
+def reset_highscore():
+	global reset
+	if reset:
+		with open("high_score.json", "w") as file:
+			json.dump(0, file)
+		reset = False
 
+# I think the name pretty much explains all it does
 def everything_stops():
 	global game_over
 	player.vel = 0
+	player.jumping = False
 	computer.vel = 0
 	road.vel = 0
 	game_over = True
 
+# Restores important values back to their initial state
 def start_game():
-	# restores important values back to their initial state
 	global score
 	score = 0
 	road.vel = 5
-	player.vel = 11
+	player.vel = 10
 	player.x = 155
 	player.y = 270
+	player.jumping = False
 	player.move_right = False
 	player.move_left = False
 	computer.spawn = True
 	computer.vel = 10
 	computer.cars_list = []
 
+# Main game loop
 while game_start:
 	pygame.time.delay(50)
 	if game_menu:
+		if nav_y == 123:
+			box_width = 200
+		else:
+			box_width = 140
 		menu_display()
 		load_high_score()
 		start_game()
+		reset_highscore()
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			game_start = False
-		if not game_menu:
+		if not game_menu and not game_over:
 			if event.type == pygame.KEYDOWN:
-				if event.key == pygame.K_RIGHT and player.x < 265:
-					player.move_right = True
-					player.move_left = False
-					player.current_pos = player.x
-				if event.key == pygame.K_LEFT and player.x > 45:
-					player.move_left = True
-					player.move_right = False
-					player.current_pos = player.x
+				if not player.jumping:
+					if event.key == pygame.K_RIGHT and player.x < 265:
+						player.move_right = True
+						player.move_left = False
+						# the variable below stores the position at which a movement key is pressed
+						player.current_pos = player.x
+					if event.key == pygame.K_LEFT and player.x > 45:
+						player.move_left = True
+						player.move_right = False
+						player.current_pos = player.x
+				if not player.moving:
+					if event.key == pygame.K_UP:
+						player.jump_pos = player.x
+						player.jumping = True
+
 		# Game menu navigations
 		if game_menu:
 			if event.type == pygame.KEYDOWN:
@@ -213,6 +264,8 @@ while game_start:
 				if event.key == pygame.K_SPACE:
 					if nav_y == 79:
 						game_menu = False
+					if nav_y == 123:
+						reset = True
 		if game_over:
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
@@ -226,8 +279,9 @@ while game_start:
 		road.move_lanes()
 		computer.random_car_pos()
 		computer.spawn_cars()
-		player.move_car()
 		player.draw_car()
+		player.move_car()
+		player.jump_over()
 		pygame.draw.rect(win, (0, 0, 0), (0, 0, 345, 5))
 		win.blit(text.render("SCORE: " + str(score), True, (0, 0, 255)), (250, 5))
 
@@ -235,31 +289,29 @@ while game_start:
 			# If a computer_car has passed the point at which it can crash into a player's car
 			if car[1] > 300:
 				car[2] = True 
-
 			# If a computer_car has not yet passed the point at which it can crash into a player's car..
+
 			if not car[2]: 
 				# ..Python should check for collision
-				if player.y in range(car[1], car[1] + 30):
-					if player.x in range(car[0], car[0] + 20):
-						print(player.x)
+				if player.y in range(car[1], car[1] + 31):
+					if player.x in range(car[0], car[0] + 21):
 						everything_stops()
-				elif car[1] in range(player.y, player.y + 30):
-					if player.x in range(car[0], car[0] + 20):
-						print(player.x)
+					if player.x + player.width in range(car[0], car[0] + 21):
 						everything_stops()
-				if player.not_moving:
-					if player.x in range(car[0] - 50, car[0] + 65):
-						if car[1] + 30 >= player.y:
-							everything_stops()
+				elif car[1] in range(player.y, player.y + 31):
+					if player.x in range(car[0], car[0] + 21):
+						everything_stops()
+					if player.x + player.width in range(car[0], car[0] + 21):
+						everything_stops()
 
 	if game_over:
 		# Game over display message
-		pygame.draw.rect(win, white, (80, 50, 230, 150))
-		pygame.draw.rect(win, blue, (80, 50, 230, 30))
-		win.blit(text.render("GAME OVER!", True, green), (130, 55))
-		win.blit(text.render("Press SPACE to go to Main Menu", True, green), (90, 85))
+		pygame.draw.rect(win, white, (50, 50, 230, 150))
+		pygame.draw.rect(win, blue, (50, 50, 230, 30))
+		win.blit(text.render("GAME OVER!", True, red), (100, 55))
+		win.blit(text.render("Press SPACE to go to Main Menu", True, green), (55, 100))
 		if score > highscore:
-			win.blit(text.render("NEW HIGH SCORE: " + str(score), True, red), (110, 95))
+			win.blit(text.render("NEW HIGH SCORE: " + str(score), True, red), (80, 155))
 			with open("high_score.json", "w") as highscore_file:
 				json.dump(score, highscore_file)
 
