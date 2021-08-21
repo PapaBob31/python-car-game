@@ -117,7 +117,7 @@ class Cars_To_Be_Dodged:
 				pygame.draw.rect(win, position[3], (position[0], position[1] + 20, 20, 10))
 				pygame.draw.rect(win, position[3], (position[0], position[1], 20, 30), 1)
 				position[1] += self.vel
-				if position[1] > 550:
+				if position[1] > 600:
 					self.cars_list.remove(position)
 					score += 1
 				if self.cars_list[-1][1] == 70:
